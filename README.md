@@ -4,11 +4,14 @@ A private, one-person daily check-in app. Each morning it asks about sleep, drin
 
 All data stays in the browser on the device (local storage). Nothing in this repository contains personal data.
 
+Live app (used on one laptop browser): https://daymode.vibepreview.app/
+
 ## What's here
 
 | Path | What it is |
 |---|---|
-| `prototype/index.html` | The working prototype: one self-contained HTML file (React from a CDN). Open it in a browser to try it. It's the source of truth for behavior and wording until the FEA build replaces it. |
+| `app/` | **The real app**, built in FEA Create (AI Studio): TanStack Start, React, TypeScript. Uploaded from FEA as a snapshot, so re-upload after FEA changes you want to keep. |
+| `prototype/index.html` | The original working prototype (one HTML file). Now the reference spec; the real app lives in `app/`. |
 | `docs/FEA build prompts.md` | Four prompts to paste into FEA Create (AI Studio), one at a time, to build the real app. |
 | `screenshots/` | Reference screens: the header and period button, writing time and the look-ahead, and the Patterns charts. |
 
@@ -19,11 +22,16 @@ Live prototype (private): https://claude.ai/artifact/R2wHZxhBpCsnujBWqcJLTS
 1. Set up four filtered Notion views (Peak, Steady, Wind-down, Restore) and copy each view's link.
 2. In FEA Create, import this repository or attach `prototype/index.html`, then paste **Prompt 1** from `docs/FEA build prompts.md`. Test it.
 3. Paste Prompts 2, 3 and 4 in order, testing after each.
-4. When the FEA build works, add its code to this repository (for example in `app/`) and make future changes there. From then on the prototype is the original spec.
+4. Done: the FEA build's code is in `app/`. Make future changes there (or in FEA, then re-upload).
+
+## Data and AI
+
+- All check-ins live in local storage in one browser, at the published address only (data entered in FEA's preview stays in the preview). Download the CSV backup about once a month.
+- FEA Create can't hold a Gemini API key, so the in-app "Ask AI" call can't work there. Plan: replace it with a "Copy my data for Claude" button and review patterns monthly with Claude.
 
 ## Where to edit the rules and words
 
-In `prototype/index.html` (and in the FEA build, by the same names):
+In the real app: `app/src/lib/daymode/content.ts` (all wording) and `app/src/lib/daymode/logic.ts` (mode rules, cycle and life-stage logic). In the prototype, by these names:
 
 - **Mode rules**: the block marked `the mode rules (edit here)`: scoring and thresholds.
 - **Phase notes**: `PHASE_NOTES`: the hormone and ADHD lines for each phase.
