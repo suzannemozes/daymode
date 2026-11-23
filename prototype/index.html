@@ -127,6 +127,23 @@ function cycleStats(s, dateStr){
 function cycleLen(s, stats){ return stats.avgLen || Math.max(21, Math.min(40, Number(s.cycleLength)||28)); }
 
 /* ---------- cycle ---------- */
+// Luteal length: real-world average is about 12–13 days (Bull et al. 2019), so default 13. Ovulation = cycle length − luteal length.
+const lutealOf = s => Math.max(10, Math.min(16, Number(s.lutealLength) || 13));
+function phaseFor(day, len, lut){
+  const ov = len - lut;
+  return day<=5 ? "Menstrual" : day<=ov-2 ? "Follicular" : day<=ov ? "Ovulatory" : day<=len-5 ? "Early luteal" : "Late luteal";
+}
+// Cycle adjustment to the day's score (edit here). The research's clearest signal is falling estradiol,
+// so the caution windows are around bleeding (days 1–3), just after ovulation (2 days), and the last 3 days.
+function cycleAdj(day, len, lut){
+  const ov = len - lut;
+  if(day <= 3) return -1;          // around bleeding
+  if(day <= 5) return 0;           // recovering
+  if(day <= ov) return 1;          // rising estrogen: the steadiest stretch
+  if(day <= ov + 2) return -1;     // post-ovulation dip
+  if(day > len - 3) return -1;     // premenstrual drop
+  return 0;                        // mid-luteal
+}
 function cycleInfo(dateStr, s){
   if(!s.trackCycle) return null;
   const st = cycleStats(s, dateStr);
@@ -134,36 +151,31 @@ function cycleInfo(dateStr, s){
   const len = Math.max(21, Math.min(45, cycleLen(s, st)));
   const since = st.since;
   if(since < 0) return null;
-  if(since >= len + 7) return { day: since + 1, phase: null, len, learned: !!st.avgLen, stale: true };  // late: no phase guess
-  const day = since + 1;
-  const ov = len - 14;
-  let phase;
-  if(day <= 5) phase = "Menstrual";
-  else if(day < ov - 1) phase = "Follicular";
-  else if(day <= ov + 1) phase = "Ovulatory";
-  else if(day <= len - 5) phase = "Early luteal";
-  else phase = "Late luteal";
-  return { day, phase, len, learned: !!st.avgLen, stale: since >= len + 7 };
+  if(since >= len + 7) return { day: since + 1, phase: null, adj: 0, len, learned: !!st.avgLen, stale: true };  // late: no phase guess
+  const day = since + 1, lut = lutealOf(s);
+  return { day, phase: phaseFor(day, len, lut), adj: cycleAdj(day, len, lut), len, lut, learned: !!st.avgLen, stale: false };
 }
 
 /* ---------- what's going on in my body (edit the words here) ---------- */
 const PHASE_NOTES = {
-  "Menstrual": { hormones:"Estrogen and progesterone are both at their lowest.",
-    adhd:"Low estrogen means less support for dopamine, so focus, memory and getting started can feel harder, especially the first couple of days. It eases as estrogen starts to climb." },
+  "Menstrual": { hormones:"Estrogen and progesterone are at their lowest.",
+    adhd:"The days around bleeding are the most consistently hard stretch in the research: focus, memory, mood and energy dip as estrogen bottoms out. It usually eases from about day 4." },
   "Follicular": { hormones:"Estrogen is rising.",
-    adhd:"Often the easiest stretch for focus, motivation and starting things. If you take a stimulant, it tends to work its strongest now." },
-  "Ovulatory": { hormones:"Estrogen peaks, with a brief rise in testosterone.",
-    adhd:"Often sharp, social, high-energy days. Some studies also see restlessness and impulsivity tick up around now, so watch for saying yes to too much." },
-  "Early luteal": { hormones:"Progesterone is rising; estrogen dips, then rises again.",
-    adhd:"Some women notice more impulsivity and wandering attention after ovulation. Rising progesterone may also blunt stimulant medication a little." },
-  "Late luteal": { hormones:"Estrogen and progesterone are both falling fast.",
-    adhd:"The most consistently reported hard stretch: scattered attention, irritability, low energy and mood dips, and medication can feel weaker. It's hormones, not you slipping. Plan lighter." },
+    adhd:"Usually the steadiest stretch for focus, mood and starting things. A good window for deep work, first drafts and hard decisions." },
+  "Ovulatory": { hormones:"Estrogen peaks.",
+    adhd:"Mood and social ease tend to be at their best, so it's a good window for pitches, calls and recording. If estrogen runs high, some women feel restless or wired, so watch for saying yes to too much." },
+  "Early luteal": { hormones:"Estrogen dips just after ovulation, then partly recovers; progesterone rises.",
+    adhd:"The first couple of days after ovulation can bring a dip in focus and more distractibility. Better for execution, editing and checklists than for launching new things." },
+  "Late luteal": { hormones:"Estrogen and progesterone are falling.",
+    adhd:"The days before your period are the most reported hard stretch for women with ADHD: scattered attention, irritability, rejection sensitivity and low energy. It's hormones, not you slipping. Plan lighter and protect your sleep." },
 };
 const PHASE_SOURCES = [
   ["ADHD and the menstrual cycle: theory and evidence (Hormones and Behavior, 2024)","https://pubmed.ncbi.nlm.nih.gov/38039899/"],
-  ["ADHD and sex hormones in females: a systematic review (J. Attention Disorders, 2025)","https://journals.sagepub.com/doi/10.1177/10870547251332319"],
+  ["ADHD symptoms and mood across the menstrual cycle: pilot study (J. Attention Disorders, 2025)","https://pubmed.ncbi.nlm.nih.gov/41451846/"],
   ["Menstrual cycle hormones and cognition in ADHD: narrative review (J. Clinical Medicine, 2025)","https://www.ncbi.nlm.nih.gov/pmc/articles/PMC12786913/"],
-  ["Premenstrual adjustment of stimulant dosage (Frontiers in Psychiatry, 2023)","https://www.frontiersin.org/articles/10.3389/fpsyt.2023.1306194"],
+  ["Female ADHD and hormonal fluctuations: consensus review (Frontiers, 2025)","https://pubmed.ncbi.nlm.nih.gov/40692967/"],
+  ["Menstrual cycle effects on cognitive performance: meta-analysis (PLOS ONE, 2025)","https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0318576"],
+  ["Real-world cycle data from 600,000+ cycles, incl. luteal length (npj Digital Medicine, 2019)","https://www.nature.com/articles/s41746-019-0152-7"],
 ];
 const LIFE_SOURCES = [
   ["Perimenopausal symptoms in women with and without ADHD (population cohort, 2025)","https://pubmed.ncbi.nlm.nih.gov/40903825/"],
@@ -199,7 +211,7 @@ function BodyBanner({cyc, s}){
     {lifeBlock}
     <button className="quiet" onClick={()=>setOpen(!open)}>{open?"Hide sources":"Sources"}</button>
     {open && <div className="note" style={{fontSize:".9rem"}}>
-      {cyc.learned ? `Cycle length (${cyc.len} days) is the average of your last logged cycles.` : "Cycle length comes from Setup until you've logged a few periods."} The research is early, mostly small studies, and women vary a lot, so treat this as a reminder, not a rule, and not medical advice.
+      {cyc.learned ? `Cycle length (${cyc.len} days) is the average of your last logged cycles.` : "Cycle length comes from Setup until you've logged a few periods."} The research is early and mostly small studies in younger women. A 2025 meta-analysis found no robust cycle effect on cognitive test scores; the clearer signal is mood and how hard things feel. Women vary a lot, so treat this as a reminder, not a rule, and not medical advice.
       <ul style={{paddingLeft:18}}>{[...PHASE_SOURCES, ...(life.length?LIFE_SOURCES:[])].map(([t,u]) => <li key={u}><a href={u} target="_blank" rel="noopener">{t}</a></li>)}</ul></div>}
   </div>;
 }
@@ -212,11 +224,13 @@ function scoreDay(e, cyc){
   s += scale5(e.sleepQuality);
   s += scale5(e.energy);
   s -= Math.min(e.drinks, 5);   // −1 per drink, capped at −5 (6+ counts as 5)
-  if(cyc && cyc.phase){ s += ({"Menstrual":-1,"Follicular":1,"Ovulatory":1,"Early luteal":0,"Late luteal":-1})[cyc.phase] ?? 0; }
+  if(cyc && cyc.phase){ s += cyc.adj != null ? cyc.adj : (({"Menstrual":-1,"Follicular":1,"Ovulatory":1,"Early luteal":0,"Late luteal":-1})[cyc.phase] ?? 0); }
   return s;
 }
-function modeFor(score, energy){
-  if(energy === 1) return "Restore";
+// Mood isn't added to the score, but very low mood, or two low-mood days in a row, means Restore.
+function modeFor(score, energy, mood, prevMood){
+  if(energy === 1 || mood === 1) return "Restore";
+  if(mood != null && mood <= 2 && prevMood != null && prevMood <= 2) return "Restore";
   if(score >= 4) return "Peak";
   if(score >= 1) return "Steady";
   if(score >= -2) return "Wind-down";
@@ -224,8 +238,8 @@ function modeFor(score, energy){
 }
 const MODES = {
   "Peak":     { color:"#C79232", tint:"#F7EDD8", time:"High noon",       key:"Peak",     line:"Your best brain is here. Write the hard thing first, then the calls, pitches and big asks." },
-  "Steady":   { color:"#1A9684", tint:"#DFF0EC", time:"Afternoon light", key:"Steady",   line:"A good, ordinary day. Morning writing as usual, then work the business list." },
-  "Wind-down":{ color:"#C0604A", tint:"#F5E2DC", time:"Dusk",            key:"Winddown", line:"Lighter lift. Editing, admin and replies. Stop early on purpose." },
+  "Steady":   { color:"#1A9684", tint:"#DFF0EC", time:"Afternoon light", key:"Steady",   line:"A good, ordinary day. Morning writing as usual, then work the business list. If focus is slow to arrive, a 20–30 minute walk or workout before your hardest block helps." },
+  "Wind-down":{ color:"#C0604A", tint:"#F5E2DC", time:"Dusk",            key:"Winddown", line:"Lighter lift. Editing, admin and replies, with a walk or workout first if you can. Stop early on purpose." },
   "Restore":  { color:"#4861AC", tint:"#E3E7F4", time:"Night",           key:"Restore",  line:"Rest is the work today. One small thing, then step away." },
 };
 
@@ -235,7 +249,8 @@ function mediumLine(e){
   const q = ["","awful","poor","OK","good","great"][e.sleepQuality];
   const dr = e.drinks===0 ? "no drinks" : e.drinks>=6 ? "6+ drinks" : `${e.drinks} drink${e.drinks===1?"":"s"}`;
   const en = ["","an empty tank","low energy","medium energy","good energy","buzzing energy"][e.energy];
-  const parts = [`${sleep} of ${q} sleep`, dr, en];
+  const md = e.mood ? ["","a very low mood","a low mood","an OK mood","a good mood","a bright mood"][e.mood] : null;
+  const parts = [`${sleep} of ${q} sleep`, dr, en, md].filter(Boolean);
   if(e.moved===true) parts.push("movement yesterday");
   if(e.cycleDay && e.phase) parts.push(`cycle day ${e.cycleDay}`);
   return parts.join(", ") + ".";
@@ -271,6 +286,17 @@ function patterns(entries){
   return { ready:true, count:r.length, rows, phases, recipe };
 }
 
+/* ---------- low mood clustering around the period, two cycles running ---------- */
+function lowMoodPattern(entries, s){
+  const starts = [...new Set([...(s.periodStarts||[]), ...(s.lastPeriod?[s.lastPeriod]:[])])].sort();
+  if(starts.length < 3) return false;
+  const flagged = starts.slice(-2).map(next => {
+    const win = entries.filter(e => e.mood != null && daysBetween(e.date, next) <= 5 && daysBetween(next, e.date) <= 2);
+    return win.filter(e => e.mood <= 2).length >= 2;
+  });
+  return flagged.every(Boolean);
+}
+
 /* ---------- writing patterns: only "what helps", never "what you missed" ---------- */
 function writingPatterns(entries){
   const w = entries.filter(e => e.writing != null);
@@ -293,28 +319,29 @@ function writingPatterns(entries){
 const PHASE_DEEP = {"Menstrual":"#C98A86","Follicular":"#6FAF93","Ovulatory":"#D4A93F","Early luteal":"#8A97CC","Late luteal":"#A884B4"};
 const PHASE_TINT = {"Menstrual":"#F3D9D7","Follicular":"#DCEFE6","Ovulatory":"#FBEFC9","Early luteal":"#E3E6F5","Late luteal":"#EDE0F0"};
 const RLABEL = ["","Rough","Meh","OK","Good","Great"];
+const MOODLABEL = ["","Very low","Low","OK","Good","Bright"];
 const INK2 = "#52514e", GRID = "#E6E2DA", BLUE = "#2a78d6";
-function phaseRanges(len){
-  const ov = len - 14;
-  return [["Menstrual",1,5],["Follicular",6,ov-2],["Ovulatory",ov-1,ov+1],["Early luteal",ov+2,len-5],["Late luteal",len-4,len]];
+function phaseRanges(len, lut = 13){
+  const ov = len - lut;
+  return [["Menstrual",1,5],["Follicular",6,ov-2],["Ovulatory",ov-1,ov],["Early luteal",ov+1,len-5],["Late luteal",len-4,len]];
 }
 const ChartCard = ({title, sub, children}) => <div style={{marginTop:22}}>
   <div className="label">{title}</div>{sub && <div className="note" style={{marginBottom:4}}>{sub}</div>}{children}</div>;
 
-function CycleMap({entries, len}){
+function CycleMap({entries, len, lut = 13, field = "rating", labels = RLABEL}){
   const W=360,H=210,L=40,R=6,T=22,B=22, pw=W-L-R, ph=H-T-B;
   const x = d => L + (d-0.5)/len*pw, y = r => T + (5-r)/4*ph;
-  const pts = entries.filter(e=>e.rating && e.cycleDay);
+  const pts = entries.filter(e=>e[field] && e.cycleDay).map(e=>({...e, rating:e[field]}));
   return <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label="Day ratings by cycle day">
-    {phaseRanges(len).map(([p,a,b]) => { const v = pts.filter(e=>e.cycleDay>=a&&e.cycleDay<=b).map(e=>e.rating); const m = avg(v); return <g key={p}>
+    {phaseRanges(len, lut).map(([p,a,b]) => { const v = pts.filter(e=>e.cycleDay>=a&&e.cycleDay<=b).map(e=>e.rating); const m = avg(v); return <g key={p}>
       <rect x={x(a)-pw/len/2} y={T} width={(b-a+1)/len*pw} height={ph} fill={PHASE_TINT[p]}/>
       <text x={x(a)-pw/len/2+3} y={T-8} fontSize="10" fill={INK2} fontFamily="Oswald">{p.split(" ").map(w=>w[0]).join("").toUpperCase()}</text>
       {m && <line x1={x(a)-pw/len/2+2} x2={x(b)+pw/len/2-2} y1={y(m)} y2={y(m)} stroke="#1C1C1C" strokeWidth="2" strokeDasharray="5 3"><title>{`${p}: average ${m.toFixed(1)} over ${v.length} days`}</title></line>}
     </g>; })}
     {[1,2,3,4,5].map(r => <g key={r}><line x1={L} x2={W-R} y1={y(r)} y2={y(r)} stroke={GRID} strokeWidth="1" opacity=".7"/>
-      <text x={L-6} y={y(r)+4} fontSize="11" textAnchor="end" fill={INK2}>{RLABEL[r]}</text></g>)}
+      <text x={L-6} y={y(r)+4} fontSize="11" textAnchor="end" fill={INK2}>{labels[r]}</text></g>)}
     {pts.map((e,i) => <circle key={e.date} cx={x(e.cycleDay)} cy={y(e.rating)+((i%3)-1)*3} r="4.5" fill="#1C1C1C" stroke="#fff" strokeWidth="2">
-      <title>{`${e.date} · cycle day ${e.cycleDay} (${e.phase}) · ${RLABEL[e.rating]} · ${e.mode}`}</title></circle>)}
+      <title>{`${e.date} · cycle day ${e.cycleDay} (${e.phase}) · ${labels[e.rating]} · ${e.mode}`}</title></circle>)}
     {[1,7,14,21,len].map(d => <text key={d} x={x(d)} y={H-6} fontSize="11" textAnchor="middle" fill={INK2}>{d}</text>)}
   </svg>;
 }
@@ -369,7 +396,7 @@ function Bars({rows, colorFor, max=5, fmt=(r)=>`${r.avg.toFixed(1)} · ${r.n}d`,
   </svg>;
 }
 
-function PatternCharts({entries, len}){
+function PatternCharts({entries, len, lut}){
   const r = entries.filter(e=>e.rating);
   const bucket = (label, test) => { const v = r.filter(test).map(e=>e.rating); return {label, avg:avg(v)||0, n:v.length}; };
   const drinkRows = [bucket("None",e=>e.drinks===0),bucket("1",e=>e.drinks===1),bucket("2",e=>e.drinks===2),bucket("3",e=>e.drinks===3),bucket("4 or more",e=>e.drinks>=4)];
@@ -381,7 +408,9 @@ function PatternCharts({entries, len}){
     {wr.length >= 5 && <ChartCard title="Writing time by mode" sub="Average minutes on days you logged, rest days included. This shows how much each kind of day tends to hold, so you can plan kindly.">
       <Bars rows={writeRows} colorFor={x=>MODES[x.label].color} max={100} unit="about" fmt={r=> r.avg < 8 ? `mostly rest · ${r.n}d` : `~${Math.round(r.avg)} min · ${r.n}d`}/></ChartCard>}
     <ChartCard title="Where good and rough days fall in your cycle" sub="Each dot is a rated day, placed by cycle day. Dashed line = that phase's average. M menstrual · F follicular · O ovulatory · EL early luteal · LL late luteal.">
-      <CycleMap entries={entries} len={len}/></ChartCard>
+      <CycleMap entries={entries} len={len} lut={lut}/></ChartCard>
+    {entries.filter(e=>e.mood && e.cycleDay).length >= 5 && <ChartCard title="Mood across your cycle" sub="Each dot is your morning mood, placed by cycle day. Dashed line = that phase's average. Two cycles of this is exactly the record a clinician would want to see.">
+      <CycleMap entries={entries} len={len} lut={lut} field="mood" labels={MOODLABEL}/></ChartCard>}
     <ChartCard title="The last six weeks, lined up" sub="Read down a column: the night before, your writing, and how the day went. Tap or hover a day for details.">
       <Timeline entries={entries}/></ChartCard>
     <ChartCard title="Drinks the night before → how the day went" sub="Average day rating (1 rough to 5 great) and number of days.">
@@ -416,8 +445,9 @@ function sampleData(){
     const sleepQuality = Math.max(1, Math.min(5, (drinks>=2?2:4) + (rnd()<.5?0:1) - (phase==="Late luteal"?1:0)));
     const energy = Math.max(1, Math.min(5, sleepQuality + (phase==="Follicular"||phase==="Ovulatory"?1:0) - (rnd()<.3?1:0)));
     const moved = rnd() < (drinks>=2 ? .3 : .65);
-    const e = { date: iso(d), sleepHours, sleepQuality, energy, drinks, moved, cycleDay: dayN, phase, sample:true };
-    e.score = scoreDay(e, {phase}); e.mode = modeFor(e.score, energy);
+    const mood = Math.max(1, Math.min(5, 4 - (dayN<=3 || dayN>=26 ? 1 : 0) - (drinks>=3 ? 1 : 0) + (rnd()<.3 ? 1 : 0) - (rnd()<.15 ? 1 : 0)));
+    const e = { date: iso(d), sleepHours, sleepQuality, energy, mood, drinks, moved, cycleDay: dayN, phase, sample:true };
+    e.score = scoreDay(e, {phase, adj: cycleAdj(dayN, 28, 13)}); e.mode = modeFor(e.score, energy, mood, out[i-1]?.mood);
     e.rating = i===N-1 ? null : Math.max(1, Math.min(5, Math.round(3 + e.score/3.5 + (moved?.4:-.2) + (rnd()-.5))));
     if(i < N-1){ const base = {"Peak":75,"Steady":45,"Wind-down":15,"Restore":0}[e.mode] + (moved?15:0) + (rnd()<.3?-30:0);
       e.writing = [0,15,45,75,100].reduce((b,v)=>Math.abs(v-base)<Math.abs(b-base)?v:b, 0); }
@@ -441,13 +471,12 @@ function forecast(s, entries){
     const since = st.since + k;
     let phase=null, day=null;
     if(st.since < len + 7){   // predict ahead (into the next cycle too) unless this period is already overdue
-      day = (since % len) + 1; const ov = len - 14;
-      phase = day<=5?"Menstrual":day<ov-1?"Follicular":day<=ov+1?"Ovulatory":day<=len-5?"Early luteal":"Late luteal";
+      day = (since % len) + 1; phase = phaseFor(day, len, lutealOf(s));
     }
     let tone = "steady";
     if(phase){
       if(usingOwn && own[phase] != null) tone = own[phase] >= 3.8 ? "strong" : own[phase] <= 2.8 ? "lighter" : "steady";
-      else tone = (phase==="Follicular"||phase==="Ovulatory") ? "strong" : (phase==="Late luteal"||(phase==="Menstrual"&&day<=2)) ? "lighter" : "steady";
+      else { const a = cycleAdj(day, len, lutealOf(s)); tone = a > 0 ? "strong" : a < 0 ? "lighter" : "steady"; }
     }
     days.push({ date:iso(d), d, day, phase, tone, periodStart: k>0 && day===1 });
   }
@@ -534,17 +563,20 @@ function App(){
 
   const t = today();
   const existing = st.entries.find(e => e.date === t);
-  const [f, setF] = useState(existing || { sleepHours:null, sleepQuality:null, energy:null, drinks:null, moved:null });
-  const done = f.sleepHours!=null && f.sleepQuality && f.energy && f.drinks!=null && f.moved!=null;
+  const [f, setF] = useState(existing || { sleepHours:null, sleepQuality:null, energy:null, mood:null, drinks:null, moved:null });
+  const done = f.sleepHours!=null && f.sleepQuality && f.energy && f.drinks!=null && f.moved!=null && f.mood!=null;
   const cyc = cycleInfo(t, st.settings);
   const [reviewed, setReviewed] = useState({});   // cards closed this visit
   const toRate = st.entries.filter(e => e.date < t && daysBetween(e.date,t) <= 3 && !reviewed[e.date]
     && (!e.rating || e.writing === undefined)).sort((a,b)=>b.date.localeCompare(a.date))[0];
 
   function submit(){
-    const score = scoreDay(f, cyc), mode = modeFor(score, f.energy);
+    const yd = new Date(); yd.setDate(yd.getDate()-1);
+    const prevMood = st.entries.find(x => x.date === iso(yd))?.mood;
+    const score = scoreDay(f, cyc), mode = modeFor(score, f.energy, f.mood, prevMood);
+    const lowMood = f.mood === 1 || (f.mood <= 2 && prevMood != null && prevMood <= 2);
     const prev = st.entries.find(x => x.date === t);
-    const e = { date:t, sleepHours:f.sleepHours, sleepQuality:f.sleepQuality, energy:f.energy, drinks:f.drinks, moved:f.moved,
+    const e = { date:t, sleepHours:f.sleepHours, sleepQuality:f.sleepQuality, energy:f.energy, mood:f.mood, drinks:f.drinks, moved:f.moved, lowMood,
       cycleDay: cyc?.day ?? null, phase: cyc?.phase ?? null, score, mode, rating: prev?.rating ?? null };
     if(prev && prev.writing !== undefined) e.writing = prev.writing;
     set(n => { n.entries = n.entries.filter(x=>x.date!==t).concat(e).sort((a,b)=>a.date.localeCompare(b.date)); });
@@ -614,6 +646,8 @@ function App(){
         <Pick k="drinks" opts={[[0,"None"],[1,"1"],[2,"2"],[3,"3"],[4,"4"],[5,"5"],[6,"6+"]]}/>
         <div className="q">Energy right now?</div>
         <Pick k="energy" opts={[[1,"Empty"],[2,"Low"],[3,"Medium"],[4,"Good"],[5,"Buzzing"]]}/>
+        <div className="q">Mood right now?</div>
+        <Pick k="mood" opts={[[1,"Very low"],[2,"Low"],[3,"OK"],[4,"Good"],[5,"Bright"]]}/>
         <div className="q">Did you move your body yesterday?</div>
         <Pick k="moved" opts={[[true,"Yes"],[false,"Not yesterday"]]}/>
         <div style={{marginTop:14}}><button className="btn" disabled={!done} onClick={submit}>{todays?"Update my mode":"Name my mode"}</button></div>
@@ -629,6 +663,7 @@ function App(){
             <div className="medium"><i>Medium:</i> {mediumLine(todays)}</div>
             <div className="rule"></div>
             <div className="advice">{M.line}</div>
+            {todays.lowMood && todays.mode==="Restore" && <div className="note" style={{marginTop:-6,marginBottom:16}}>Your mood is low{todays.mood===1?"":" for a second day"}, so Restore is the plan. Be gentle with yourself; the work will keep.</div>}
             {link ? <a className="btn outline" href={link} target="_blank" rel="noopener">Open my {todays.mode} list in Notion →</a>
                   : <div className="note">Paste your Notion view link for {todays.mode} in Setup and a button appears here.</div>}
           </div>
@@ -647,14 +682,15 @@ function App(){
     {tab==="history" && <div className="card">
       <h2>History</h2>
       {!st.entries.length ? <div className="note">Your check-ins will show here.</div> :
-      <div style={{overflowX:"auto"}}><table><thead><tr><th>Date</th><th>Mode</th><th>Sleep</th><th>Drinks</th><th>Moved</th><th>Cycle</th><th>Writing</th><th>Day went</th></tr></thead>
+      <div style={{overflowX:"auto"}}><table><thead><tr><th>Date</th><th>Mode</th><th>Sleep</th><th>Drinks</th><th>Mood</th><th>Moved</th><th>Cycle</th><th>Writing</th><th>Day went</th></tr></thead>
       <tbody>{[...st.entries].reverse().map(e => <React.Fragment key={e.date}><tr>
         <td>{e.date.slice(5)}</td><td>{e.mode}</td><td>{e.sleepHours}h · {e.sleepQuality}/5</td><td>{e.drinks>=6?"6+":e.drinks}</td>
+        <td>{e.mood?MOODLABEL[e.mood]:""}</td>
         <td>{e.moved===true?"Yes":e.moved===false?"–":""}</td>
         <td>{e.cycleDay?`D${e.cycleDay}`:"–"}</td><td>{e.writing!=null?WSHORT[e.writing]:""}</td>
         <td><button className="chip" style={{padding:"4px 10px",minHeight:36}} onClick={()=>setEditing(editing===e.date?null:e.date)}>
           {e.rating?["","Rough","Meh","OK","Good","Great"][e.rating]:"Rate"}</button></td></tr>
-        {editing===e.date && <tr><td colSpan="8"><div className="note" style={{margin:"4px 0"}}>How did {e.date} go?</div>
+        {editing===e.date && <tr><td colSpan="9"><div className="note" style={{margin:"4px 0"}}>How did {e.date} go?</div>
           <DayReview entry={e} onSet={(k,v)=>setField(e.date, k, v)}/>
           <div style={{marginTop:8}}><button className="btn outline" onClick={()=>setEditing(null)}>Close</button></div></td></tr>}
       </React.Fragment>)}</tbody></table></div>}
@@ -662,6 +698,11 @@ function App(){
     </div>}
 
     {tab==="patterns" && (() => { const p = patterns(st.entries), wp = writingPatterns(st.entries); return <>
+    {lowMoodPattern(st.entries, st.settings) && <div className="card" style={{borderLeft:"6px solid #A884B4"}}>
+      <div className="label">A pattern worth noticing</div>
+      <h2>Low mood has gathered around your period two cycles running.</h2>
+      <div>That's common for women with ADHD, and it's treatable. It's worth showing a clinician; your History and the mood chart below are exactly the daily record they'd want to see.</div>
+    </div>}
     <div className="card">
       <h2>What helps your writing flow</h2>
       {!wp.ready ? <div className="note">After {5-wp.count} more day{5-wp.count===1?"":"s"} with writing time logged, this shows what tends to come before your easier writing days.</div>
@@ -686,7 +727,7 @@ function App(){
         {!!p.phases.length && <div style={{marginTop:14}}><div className="label">By cycle phase</div>
           {p.phases.map(x => <div key={x.p}><span className="bar" style={{width:x.a*30}}></span>{x.p}: <b>{x.a.toFixed(1)}</b> <span className="note">({x.n} days)</span></div>)}</div>}
         <div className="note" style={{marginTop:14}}>Sorted by biggest difference first. A few days is a hint, not a rule.</div>
-        <PatternCharts entries={st.entries} len={Math.max(21, Math.min(45, cycleLen(st.settings, cycleStats(st.settings, t))))}/>
+        <PatternCharts entries={st.entries} len={Math.max(21, Math.min(45, cycleLen(st.settings, cycleStats(st.settings, t))))} lut={lutealOf(st.settings)}/>
       </>}
     </div></>; })()}
 
@@ -704,7 +745,7 @@ function App(){
         <h2>Cycle</h2>
         <label className="row" style={{alignItems:"center"}}><input type="checkbox" checked={st.settings.trackCycle} onChange={e=>set(n=>{n.settings.trackCycle=e.target.checked;})}/> Include my cycle</label>
         {st.settings.trackCycle && <PeriodLog s={st.settings} onAdd={logPeriod} onRemove={unlogPeriod}
-           onLen={v=>set(n=>{n.settings.cycleLength=v;})}/>}
+           onLen={v=>set(n=>{n.settings.cycleLength=v;})} onLut={v=>set(n=>{n.settings.lutealLength=v;})}/>}
       </div>
       <div className="card">
         <h2>Notion views</h2>
@@ -724,7 +765,7 @@ function App(){
   </div>);
 }
 
-function PeriodLog({s, onAdd, onRemove, onLen}){
+function PeriodLog({s, onAdd, onRemove, onLen, onLut}){
   const [d, setD] = useState("");
   const st = cycleStats(s, today());
   const rows = st.starts.map((x,i) => ({date:x, len: i>0 ? st.lengths[i-1] : null})).reverse().slice(0,8);
@@ -736,6 +777,9 @@ function PeriodLog({s, onAdd, onRemove, onLen}){
     {!!rows.length && <table style={{marginTop:10}}><thead><tr><th>Started</th><th>Cycle before it</th><th></th></tr></thead>
       <tbody>{rows.map(r => <tr key={r.date}><td>{r.date}</td><td>{r.len!=null ? `${r.len} days` : "–"}</td>
         <td><button className="quiet" onClick={()=>onRemove(r.date)} aria-label={"Remove "+r.date}>× Remove</button></td></tr>)}</tbody></table>}
+    <div className="q">Luteal length (days from ovulation to your next period)</div>
+    <input type="number" min="10" max="16" value={s.lutealLength||13} onChange={e=>onLut(e.target.value)}/>
+    <div className="note" style={{marginTop:6}}>13 is the real-world average. If your premenstrual dip keeps arriving earlier than the app expects, try 12; later, try 14.</div>
     <div className="q">Usual cycle length (days)</div>
     <input type="number" min="21" max="45" value={s.cycleLength} onChange={e=>onLen(e.target.value)}/>
     <div className="note" style={{marginTop:6}}>
@@ -747,8 +791,8 @@ function PeriodLog({s, onAdd, onRemove, onLen}){
 
 function Backup({st,setSt}){
   const [msg,setMsg] = useState("");
-  const csv = ["date,mode,score,sleep_hours,sleep_quality,drinks,energy,moved_day_before,cycle_day,phase,day_rating,writing_minutes"]
-    .concat(st.entries.map(e=>[e.date,e.mode,e.score,e.sleepHours,e.sleepQuality,e.drinks,e.energy,e.moved==null?"":e.moved?"yes":"no",e.cycleDay??"",e.phase??"",e.rating??"",e.writing??""].join(",")))
+  const csv = ["date,mode,score,sleep_hours,sleep_quality,drinks,energy,mood,moved_day_before,cycle_day,phase,day_rating,writing_minutes"]
+    .concat(st.entries.map(e=>[e.date,e.mode,e.score,e.sleepHours,e.sleepQuality,e.drinks,e.energy,e.mood??"",e.moved==null?"":e.moved?"yes":"no",e.cycleDay??"",e.phase??"",e.rating??"",e.writing??""].join(",")))
     .concat(["","period_starts"], (st.settings.periodStarts||[])).join("\n");
   return <div className="card">
     <h2>Your data</h2>
