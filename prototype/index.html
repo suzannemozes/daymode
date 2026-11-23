@@ -5,39 +5,83 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Day Mode</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=Oswald:wght@400;500&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600&family=Playfair+Display:ital,wght@0,500;0,700;0,900;1,500;1,700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
 <style>
-  :root{--bg:#F4F2EE;--card:#fff;--line:#D8D2C7;--bronze:#8A5A2B;--ink:#1C1C1C;--muted:#6B655D;--red:#C9332A}
+  /* The Gallery system (Suzanne Mozes brand). Day Mode's own personality: each mode is a time of day. */
+  :root{
+    --wall:#F4F2EE; --card:#fff; --line:#D8D2C7; --bronze:#8A5A2B; --ink:#1C1C1C; --muted:#6B655D; --red:#C9332A;
+    --mode:#8A5A2B; --mode-tint:#F4F2EE;
+    --head:"Playfair Display",Georgia,serif; --body:"EB Garamond",Georgia,serif; --lab:Oswald,"Arial Narrow",Arial,sans-serif;
+  }
+  body.morning{--wall:#F3F3F0} body.evening{--wall:#F6EFE5}   /* the wall warms through the day */
   *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--ink);font:18px/1.5 "EB Garamond",Georgia,serif}
-  .wrap{max-width:560px;margin:0 auto;padding:28px 18px 60px}
-  h1{font:900 2rem "Playfair Display",serif;margin:0}
-  h1 .dot{color:var(--red)}
-  h2{font:700 1.35rem "Playfair Display",serif;margin:0 0 10px}
-  .label{font:500 .72rem Oswald,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--bronze)}
-  .card{background:var(--card);border:1px solid var(--line);padding:18px;margin-top:16px}
+  body{margin:0;background:var(--wall);color:var(--ink);font:19px/1.55 var(--body);transition:background .6s}
+  a{color:inherit}
+  .wrap{max-width:720px;margin:0 auto;padding:clamp(24px,5vw,56px) clamp(20px,5vw,48px) 80px}
+  @keyframes settle{from{opacity:0;transform:translateY(10px);filter:blur(2px)}to{opacity:1;transform:none;filter:none}}
+  .settle{animation:settle .45s ease-out backwards}
+  @media (prefers-reduced-motion:reduce){.settle{animation:none}body{transition:none}}
+
+  .masthead{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+  .brand{display:flex;align-items:center;gap:10px}
+  .brand svg{width:40px;height:40px;flex-shrink:0;margin-left:-6px}
+  h1{font:900 2.1rem/1 var(--head);margin:0;letter-spacing:-.01em}
+  h1 .dot{color:var(--mode);transition:color .6s}
+  .greeting{font:500 2.4rem/1.15 var(--head);margin:28px 0 4px}
+  .greeting em{font-style:italic}
+  .sub{font-style:italic;color:var(--muted)}
+  h2{font:700 1.45rem/1.25 var(--head);margin:0 0 10px}
+  h2 em{font-weight:500}
+  .label{font:500 .74rem var(--lab);letter-spacing:.16em;text-transform:uppercase;color:var(--bronze)}
+  .card{background:var(--card);border:1px solid var(--line);padding:24px 26px;margin-top:22px}
   .row{display:flex;gap:8px;flex-wrap:wrap}
-  .chip{border:1px solid var(--line);background:#fff;padding:9px 13px;border-radius:8px;font:inherit;font-size:1rem;cursor:pointer;min-height:44px}
+  .chip{border:1px solid var(--line);background:#fff;color:var(--ink);padding:9px 15px;border-radius:8px;font:inherit;font-size:1.02rem;cursor:pointer;min-height:44px;transition:background .15s,border-color .15s}
+  .chip:hover{border-color:var(--ink)}
   .chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
-  .btn{background:var(--ink);color:#fff;border:0;border-radius:8px;padding:13px 18px;font:500 .85rem Oswald,sans-serif;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;text-decoration:none;display:inline-block;min-height:44px}
+  .btn{background:var(--ink);color:#fff;border:0;border-radius:8px;padding:13px 20px;font:500 .82rem var(--lab);letter-spacing:.14em;text-transform:uppercase;cursor:pointer;text-decoration:none;display:inline-block;min-height:44px}
   .btn.outline{background:transparent;color:var(--ink);border:1px solid var(--ink)}
-  .btn:disabled{opacity:.35;cursor:default}
-  .q{margin:16px 0 6px}
-  .note{color:var(--muted);font-style:italic;font-size:.95rem}
-  input[type=date],input[type=number],input[type=url],input[type=time]{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;width:100%}
-  .mode{padding:26px 18px;color:#fff;margin-top:16px}
-  .mode h2{font-size:2.6rem;font-weight:900;margin:4px 0 6px;color:inherit}
-  .mode .label{color:inherit;opacity:.85}
-  .tabs{display:flex;gap:6px;margin-top:18px}
-  table{width:100%;border-collapse:collapse;font-size:.95rem}
-  td,th{border-bottom:1px solid var(--line);padding:6px 4px;text-align:left}
-  th{font:500 .7rem Oswald,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:var(--bronze)}
-  .bar{height:10px;background:var(--bronze);display:inline-block;vertical-align:middle;margin-right:6px}
-  .quiet{background:none;border:0;font:500 .72rem Oswald,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--bronze);cursor:pointer;padding:12px 0;min-height:44px}
-  textarea{width:100%;height:90px;font:12px monospace}
+  .btn:disabled{opacity:.3;cursor:default}
+  .q{margin:20px 0 8px;font-weight:500}
+  .note{color:var(--muted);font-style:italic;font-size:.97rem}
+  input[type=text],input[type=date],input[type=number],input[type=url],input[type=time]{font:inherit;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:#fff;width:100%;color:var(--ink)}
+  input:focus,button:focus-visible{outline:2px solid var(--bronze);outline-offset:2px}
+
+  /* tabs as gallery signage */
+  .tabs{display:flex;gap:26px;margin-top:30px;border-bottom:1px solid var(--line)}
+  .tab{background:none;border:0;padding:10px 0 12px;font:500 .8rem var(--lab);letter-spacing:.16em;text-transform:uppercase;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;min-height:44px}
+  .tab.on{color:var(--ink);border-bottom-color:var(--ink)}
+  .tab .no{color:var(--bronze);margin-right:6px}
+
+  /* today's mode, hung like a work on the wall: a wall label with a paint-chip strip */
+  .mode{display:grid;grid-template-columns:12px 1fr;background:#fff;border:1px solid var(--line);margin-top:22px}
+  .mode .strip{background:var(--mode)}
+  .mode .inner{padding:30px 32px;background:var(--mode-tint)}
+  .mode .name{font:italic 500 3.4rem/1 var(--head);margin:6px 0 2px}
+  .mode .time{font:500 .74rem var(--lab);letter-spacing:.16em;text-transform:uppercase;color:var(--mode)}
+  .mode .medium{margin-top:14px;font-size:.98rem;color:var(--muted)}
+  .mode .medium i{color:var(--ink)}
+  .mode .advice{font-size:1.18rem;margin:14px 0 18px}
+
+  /* the dark room (evening) */
+  .dark{background:var(--ink);color:#EDE9E2;border-color:var(--ink)}
+  .dark .label{color:#C9A57E} .dark .note{color:#B9B2A8}
+  .dark .chip{background:transparent;color:#EDE9E2;border-color:#4A4641}
+  .dark .chip:hover{border-color:#EDE9E2}
+  .dark .chip.on{background:#EDE9E2;color:var(--ink);border-color:#EDE9E2}
+  .dark .kind{color:#C9A57E}
+  .kind{font:italic 500 1.2rem/1.4 var(--head);color:var(--bronze);margin-top:12px}
+
+  table{width:100%;border-collapse:collapse;font-size:.97rem}
+  td,th{border-bottom:1px solid var(--line);padding:8px 6px;text-align:left}
+  th{font:500 .7rem var(--lab);letter-spacing:.14em;text-transform:uppercase;color:var(--bronze)}
+  .bar{height:10px;background:var(--bronze);display:inline-block;vertical-align:middle;margin-right:8px}
+  .quiet{background:none;border:0;font:500 .74rem var(--lab);letter-spacing:.14em;text-transform:uppercase;color:var(--bronze);cursor:pointer;padding:12px 0;min-height:44px}
+  .periodbtn{background:var(--red);color:#fff}
+  .periodbtn.logged{background:#fff;color:var(--red);border:1.5px solid var(--red)}
+  .rule{width:40px;height:1px;background:var(--bronze);margin:14px 0}
 </style>
 </head>
 <body>
@@ -49,7 +93,7 @@ const {useState, useEffect} = React;
 const KEY = "daymode-v1";
 const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || null; } catch(e){ return null; } };
 const save = (s) => { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch(e){} };
-const blank = { entries: [], settings: { lastPeriod:"", periodStarts:[], dob:"", cycleLength:28, trackCycle:true, reminder:"08:00",
+const blank = { entries: [], settings: { name:"", lastPeriod:"", periodStarts:[], dob:"", cycleLength:28, trackCycle:true, reminder:"08:00",
   notion:{Peak:"",Steady:"",Winddown:"",Restore:""} } };
 
 /* ---------- dates ---------- */
@@ -145,7 +189,7 @@ function BodyBanner({cyc, s}){
     {!st.yearWithout && <div>Add the first day of your last period in Setup to see where you are.</div>}
     {lifeBlock}</div>;
   const n = cyc.phase ? PHASE_NOTES[cyc.phase] : null;
-  return <div className="card" style={{borderLeft:"4px solid var(--bronze)"}}>
+  return <div className="card settle" style={{borderLeft:`6px solid ${n ? PHASE_DEEP[cyc.phase] : "var(--line)"}`}}>
     <div className="label">Your body today{age!=null && ` · age ${age}`}</div>
     <h2 style={{marginBottom:4}}>{n ? <>Day {cyc.day} of {cyc.len} · likely {cyc.phase.toLowerCase()}</> : <>Day {cyc.day} since your last period</>}</h2>
     {n && cyc.day <= 5 && <div><b>Period day {cyc.day}.</b></div>}
@@ -179,11 +223,23 @@ function modeFor(score, energy){
   return "Restore";
 }
 const MODES = {
-  "Peak":     { color:"#1baf7a", ink:"#0b0b0b", key:"Peak",     line:"Your best brain is here. Write the hard thing first, then the calls, pitches and big asks." },
-  "Steady":   { color:"#2a78d6", ink:"#fff", key:"Steady",   line:"A good, ordinary day. Morning writing as usual, then work the business list." },
-  "Wind-down":{ color:"#eda100", ink:"#0b0b0b", key:"Winddown", line:"Lighter lift. Editing, admin and replies. Stop early on purpose." },
-  "Restore":  { color:"#6250d6", ink:"#fff", key:"Restore",  line:"Rest is the work today. One small thing, then step away." },
+  "Peak":     { color:"#C79232", tint:"#F7EDD8", time:"High noon",       key:"Peak",     line:"Your best brain is here. Write the hard thing first, then the calls, pitches and big asks." },
+  "Steady":   { color:"#1A9684", tint:"#DFF0EC", time:"Afternoon light", key:"Steady",   line:"A good, ordinary day. Morning writing as usual, then work the business list." },
+  "Wind-down":{ color:"#C0604A", tint:"#F5E2DC", time:"Dusk",            key:"Winddown", line:"Lighter lift. Editing, admin and replies. Stop early on purpose." },
+  "Restore":  { color:"#4861AC", tint:"#E3E7F4", time:"Night",           key:"Restore",  line:"Rest is the work today. One small thing, then step away." },
 };
+
+// The wall-label "Medium" line: what the day is made of
+function mediumLine(e){
+  const sleep = {5:"under 6 hours",6.5:"6–7 hours",7.5:"7–8 hours",8.5:"8–9 hours",9.5:"9+ hours"}[e.sleepHours] || `${e.sleepHours} hours`;
+  const q = ["","awful","poor","OK","good","great"][e.sleepQuality];
+  const dr = e.drinks===0 ? "no drinks" : e.drinks>=6 ? "6+ drinks" : `${e.drinks} drink${e.drinks===1?"":"s"}`;
+  const en = ["","an empty tank","low energy","medium energy","good energy","buzzing energy"][e.energy];
+  const parts = [`${sleep} of ${q} sleep`, dr, en];
+  if(e.moved===true) parts.push("movement yesterday");
+  if(e.cycleDay && e.phase) parts.push(`cycle day ${e.cycleDay}`);
+  return parts.join(", ") + ".";
+}
 
 /* ---------- patterns ---------- */
 const avg = a => a.length ? a.reduce((x,y)=>x+y,0)/a.length : null;
@@ -234,6 +290,7 @@ function writingPatterns(entries){
 }
 
 /* ---------- charts (plain SVG) ---------- */
+const PHASE_DEEP = {"Menstrual":"#C98A86","Follicular":"#6FAF93","Ovulatory":"#D4A93F","Early luteal":"#8A97CC","Late luteal":"#A884B4"};
 const PHASE_TINT = {"Menstrual":"#F3D9D7","Follicular":"#DCEFE6","Ovulatory":"#FBEFC9","Early luteal":"#E3E6F5","Late luteal":"#EDE0F0"};
 const RLABEL = ["","Rough","Meh","OK","Good","Great"];
 const INK2 = "#52514e", GRID = "#E6E2DA", BLUE = "#2a78d6";
@@ -256,7 +313,7 @@ function CycleMap({entries, len}){
     </g>; })}
     {[1,2,3,4,5].map(r => <g key={r}><line x1={L} x2={W-R} y1={y(r)} y2={y(r)} stroke={GRID} strokeWidth="1" opacity=".7"/>
       <text x={L-6} y={y(r)+4} fontSize="11" textAnchor="end" fill={INK2}>{RLABEL[r]}</text></g>)}
-    {pts.map((e,i) => <circle key={e.date} cx={x(e.cycleDay)} cy={y(e.rating)+((i%3)-1)*3} r="4.5" fill={BLUE} stroke="#fff" strokeWidth="2">
+    {pts.map((e,i) => <circle key={e.date} cx={x(e.cycleDay)} cy={y(e.rating)+((i%3)-1)*3} r="4.5" fill="#1C1C1C" stroke="#fff" strokeWidth="2">
       <title>{`${e.date} · cycle day ${e.cycleDay} (${e.phase}) · ${RLABEL[e.rating]} · ${e.mode}`}</title></circle>)}
     {[1,7,14,21,len].map(d => <text key={d} x={x(d)} y={H-6} fontSize="11" textAnchor="middle" fill={INK2}>{d}</text>)}
   </svg>;
@@ -267,7 +324,7 @@ function Timeline({entries}){
   const W=360,L=40,R=6, pw=W-L-R, n=days.length, cw=pw/n;
   const x = i => L + i*cw + cw/2;
   const P1=8, P2=34, H2=90, P5=P2+H2+22, H5=40, P3=P5+H5+22, H3=44, P4=P3+H3+22, H4=36, P6=P4+H4+20, H=P6+30;
-  const VIOLET="#6250d6";
+  const VIOLET="#8A5A2B";   // writing = bronze
   const yr = r => P2 + (5-r)/4*H2;
   const line = days.map((e,i)=>e.rating?`${x(i)},${yr(e.rating)}`:null);
   const segs = []; let cur=[]; line.forEach(p=>{ if(p) cur.push(p); else { if(cur.length) segs.push(cur); cur=[]; }}); if(cur.length) segs.push(cur);
@@ -286,10 +343,10 @@ function Timeline({entries}){
       : <rect key={"w"+i} x={L+i*cw+1} y={P5+H5-e.writing/100*H5} width={Math.max(1,cw-2)} height={e.writing/100*H5} rx="2" fill={VIOLET}/>)}
     <text x={L} y={P3-6} fontSize="10" fill={INK2} fontFamily="Oswald">SLEEP (HOURS) · LINE AT 8</text>
     <line x1={L} x2={W-R} y1={P3+H3-8/10*H3} y2={P3+H3-8/10*H3} stroke={GRID} strokeDasharray="3 3"/>
-    {days.map((e,i) => { const h = e.sleepHours/10*H3; return <rect key={"s"+i} x={L+i*cw+1} y={P3+H3-h} width={Math.max(1,cw-2)} height={h} rx="2" fill={BLUE}/>; })}
+    {days.map((e,i) => { const h = e.sleepHours/10*H3; return <rect key={"s"+i} x={L+i*cw+1} y={P3+H3-h} width={Math.max(1,cw-2)} height={h} rx="2" fill="#4861AC"/>; })}
     <text x={L} y={P4-6} fontSize="10" fill={INK2} fontFamily="Oswald">DRINKS THE NIGHT BEFORE</text>
     <line x1={L} x2={W-R} y1={P4+H4} y2={P4+H4} stroke={GRID}/>
-    {days.map((e,i) => { const h = e.drinks/maxD*H4; return h>0 && <rect key={"d"+i} x={L+i*cw+1} y={P4+H4-h} width={Math.max(1,cw-2)} height={h} rx="2" fill="#eb6834"/>; })}
+    {days.map((e,i) => { const h = e.drinks/maxD*H4; return h>0 && <rect key={"d"+i} x={L+i*cw+1} y={P4+H4-h} width={Math.max(1,cw-2)} height={h} rx="2" fill="#C0604A"/>; })}
     <text x={L-6} y={P6+4} fontSize="10" textAnchor="end" fill={INK2}>Moved</text>
     {days.map((e,i) => e.moved===true && <circle key={"m"+i} cx={x(i)} cy={P6} r="3" fill="#1C1C1C"/>)}
     <text x={L} y={H-4} fontSize="10" fill={INK2}>{days[0].date.slice(5)}</text>
@@ -328,7 +385,7 @@ function PatternCharts({entries, len}){
     <ChartCard title="The last six weeks, lined up" sub="Read down a column: the night before, your writing, and how the day went. Tap or hover a day for details.">
       <Timeline entries={entries}/></ChartCard>
     <ChartCard title="Drinks the night before → how the day went" sub="Average day rating (1 rough to 5 great) and number of days.">
-      <Bars rows={drinkRows} colorFor={()=>"#eb6834"}/></ChartCard>
+      <Bars rows={drinkRows} colorFor={()=>"#C0604A"}/></ChartCard>
     <ChartCard title="Was the mode right?" sub="If the rules work, Peak days rate highest and Restore days lowest. If not, the scoring needs adjusting.">
       <Bars rows={modeRows} colorFor={x=>MODES[x.label].color}/></ChartCard>
   </>;
@@ -408,13 +465,13 @@ function LookAhead({s, entries}){
     <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4,marginTop:8}}>
       {f.days.map(x => <div key={x.date} title={`${fmtD(x.d)}${x.phase?` · cycle day ${x.day}, ${x.phase}`:""}`}
         style={{background:x.phase?PHASE_TINT[x.phase]:"#f2f0ec",padding:"4px 2px",textAlign:"center",fontSize:".8rem",lineHeight:1.25,
-          border: x.tone==="strong" ? "2px solid #1baf7a" : "2px solid transparent", opacity: x.tone==="lighter" ? .75 : 1}}>
+          border: x.tone==="strong" ? "2px solid #C79232" : "2px solid transparent", opacity: x.tone==="lighter" ? .75 : 1}}>
         <div style={{fontFamily:"Oswald",fontSize:".65rem",color:INK2}}>{x.d.toLocaleDateString("en-US",{weekday:"short"}).toUpperCase()}</div>
         <div style={{fontWeight:600}}>{x.d.getDate()}</div>
         <div style={{fontSize:".65rem",color:INK2}}>{x.periodStart ? "● P" : (ABBR[x.phase]||"")}</div>
       </div>)}
     </div>
-    <div className="note" style={{marginTop:6,fontSize:".85rem"}}>{[f.days.some(x=>x.tone==="strong")&&"Green outline = likely strong day", f.days.some(x=>x.tone==="lighter")&&"faded = likely lighter day", f.nextPeriod&&"● P = period expected"].filter(Boolean).join(" · ")}</div>
+    <div className="note" style={{marginTop:6,fontSize:".85rem"}}>{[f.days.some(x=>x.tone==="strong")&&"Gold outline = likely strong day", f.days.some(x=>x.tone==="lighter")&&"faded = likely lighter day", f.nextPeriod&&"● P = period expected"].filter(Boolean).join(" · ")}</div>
     {f.strong.slice(0,2).map((r,i) => <div key={"s"+i} style={{marginTop:8}}><b>Likely strong: {fmtRun(r)}.</b> Good for pitches, client calls, interviews and big asks.</div>)}
     {f.lighter.slice(0,2).map((r,i) => <div key={"l"+i} style={{marginTop:6}}><b>Likely lighter: {fmtRun(r)}.</b> Keep these roomy: editing, admin, replies, rest.</div>)}
     {f.nextPeriod && <div style={{marginTop:6}}>Next period expected around <b>{fmtD(f.nextPeriod.d)}</b>.</div>}
@@ -452,8 +509,20 @@ function DayReview({entry, onSet, askRating=true}){
     <div className="q"><b>Any writing time?</b> <span className="note">Every answer counts, rest included.</span></div>
     <div className="row">{WRITING.map(([v,l]) =>
       <button key={v} className={"chip"+(entry.writing===v?" on":"")} onClick={()=>onSet("writing", v)}>{l}</button>)}</div>
-    {entry.writing != null && <div style={{marginTop:8,fontStyle:"italic",color:"var(--bronze)"}}>{writingLine(entry.writing, entry)}</div>}
+    {entry.writing != null && <div className="kind settle" key={entry.writing}>{writingLine(entry.writing, entry)}</div>}
   </>;
+}
+
+/* ---------- personality: greetings (Call Forth's sibling) ---------- */
+const GRID_M = <svg viewBox="20 16 60 60" aria-hidden="true"><path d="M38 21V71M62 21V71M27 32H73M27 57H73" stroke="#1C1C1C" strokeWidth=".6" strokeLinecap="round" fill="none"/><path fillRule="evenodd" fill="#1C1C1C" d="M38 32H62V57H38Z M39.2 32.2H60.8L50 46.6Z M45.5 51.2V57H49.7Z M54.5 51.2V57H50.3Z"/></svg>;
+function partOfDay(h){ return h < 5 ? "night" : h < 12 ? "morning" : h < 17 ? "afternoon" : "evening"; }
+function greetingFor(name, dateStr){
+  const h = new Date().getHours(), pod = partOfDay(h);
+  const n = name ? `, ${name}` : "";
+  const timed = {morning:["Good morning","Rise and make"], afternoon:["Good afternoon","Happy afternoon"], evening:["Good evening","Evening"], night:["Hello, night owl","Burning the midnight oil?"]}[pod];
+  const any = ["There you are","Pull up a chair","Well, hello","Good to see you"];
+  const pool = [...timed, ...timed, ...any];   // time-of-day greetings come up most
+  return pickLine(pool, dateStr) + n + ".";
 }
 
 /* ---------- app ---------- */
@@ -490,6 +559,14 @@ function App(){
   const rate = (date, v) => setField(date, "rating", v);
   const evening = new Date().getHours() >= 17;
   const [editing, setEditing] = useState(null);
+  const todaysMode = st.entries.find(e => e.date === t)?.mode;
+  useEffect(() => {
+    const pod = partOfDay(new Date().getHours());
+    document.body.className = pod === "morning" ? "morning" : (pod === "evening" || pod === "night") ? "evening" : "";
+    const M = MODES[todaysMode];
+    document.documentElement.style.setProperty("--mode", M ? M.color : "#8A5A2B");
+    document.documentElement.style.setProperty("--mode-tint", M ? M.tint : "#F4F2EE");
+  }, [todaysMode]);
 
   const Pick = ({k, opts}) => (
     <div className="row">{opts.map(([v,l]) =>
@@ -497,19 +574,21 @@ function App(){
 
   return (
   <div className="wrap">
-    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12}}>
-      <div>
-        <div className="label">{new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})}</div>
-        <h1>Day Mode<span className="dot">.</span></h1>
-      </div>
+    <div className="masthead">
+      <div className="brand">{GRID_M}<h1>Day Mode<span className="dot">.</span></h1></div>
       {st.settings.trackCycle && (loggedToday
-        ? <button className="btn" style={{background:"#fff",color:"var(--red)",border:"2px solid var(--red)",padding:"8px 12px",whiteSpace:"nowrap",flexShrink:0,lineHeight:1.3}} onClick={()=>unlogPeriod(t)} title="Tap to undo">Logged ✓<br/><span style={{fontSize:".62rem",opacity:.8}}>Tap to undo</span></button>
-        : <button className="btn" style={{background:"var(--red)",padding:"10px 14px",whiteSpace:"nowrap",flexShrink:0}} onClick={()=>logPeriod(t)}>Period started</button>)}
+        ? <button className="btn periodbtn logged" style={{padding:"8px 14px",whiteSpace:"nowrap",flexShrink:0,lineHeight:1.3}} onClick={()=>unlogPeriod(t)} title="Tap to undo">Logged ✓<br/><span style={{fontSize:".62rem",opacity:.8}}>Tap to undo</span></button>
+        : <button className="btn periodbtn" style={{padding:"10px 16px",whiteSpace:"nowrap",flexShrink:0}} onClick={()=>logPeriod(t)}>Period started</button>)}
+    </div>
+    <div className="settle">
+      <div className="label" style={{marginTop:28}}>{new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})}</div>
+      <div className="greeting">{greetingFor(st.settings.name, t)}</div>
+      <div className="sub">{todays ? <>Today is a <em style={{color:"var(--mode)",fontStyle:"italic"}}>{todays.mode}</em> day. {MODES[todays.mode].time}.</> : "Let's see what kind of day this is."}</div>
     </div>
     <BodyBanner cyc={cyc} s={st.settings}/>
     <div className="tabs">
-      {[["today","Today"],["history","History"],["patterns","Patterns"],["setup","Setup"]].map(([k,l]) =>
-        <button key={k} className={"chip"+(tab===k?" on":"")} onClick={()=>setTab(k)}>{l}</button>)}
+      {[["today","Today"],["history","History"],["patterns","Patterns"],["setup","Setup"]].map(([k,l],i) =>
+        <button key={k} className={"tab"+(tab===k?" on":"")} onClick={()=>setTab(k)}><span className="no">{String(i+1).padStart(2,"0")}</span>{l}</button>)}
     </div>
 
     {tab==="today" && <>
@@ -524,31 +603,39 @@ function App(){
         </div>
       </div>}
 
-      <div className="card">
-        <div className="q"><b>How many hours did you sleep?</b></div>
+      <div className="card settle">
+        <div className="label">Morning check-in</div>
+        <h2>How are you arriving <em>today</em>?</h2>
+        <div className="q">How many hours did you sleep?</div>
         <Pick k="sleepHours" opts={[[5,"Under 6"],[6.5,"6–7"],[7.5,"7–8"],[8.5,"8–9"],[9.5,"9+"]]}/>
-        <div className="q"><b>How well did you sleep?</b></div>
+        <div className="q">How well did you sleep?</div>
         <Pick k="sleepQuality" opts={[[1,"Awful"],[2,"Poor"],[3,"OK"],[4,"Good"],[5,"Great"]]}/>
-        <div className="q"><b>Drinks last night?</b></div>
+        <div className="q">Drinks last night?</div>
         <Pick k="drinks" opts={[[0,"None"],[1,"1"],[2,"2"],[3,"3"],[4,"4"],[5,"5"],[6,"6+"]]}/>
-        <div className="q"><b>Energy right now?</b></div>
+        <div className="q">Energy right now?</div>
         <Pick k="energy" opts={[[1,"Empty"],[2,"Low"],[3,"Medium"],[4,"Good"],[5,"Buzzing"]]}/>
-        <div className="q"><b>Did you move your body yesterday?</b></div>
+        <div className="q">Did you move your body yesterday?</div>
         <Pick k="moved" opts={[[true,"Yes"],[false,"Not yesterday"]]}/>
         <div style={{marginTop:14}}><button className="btn" disabled={!done} onClick={submit}>{todays?"Update my mode":"Name my mode"}</button></div>
       </div>
 
       {todays && (() => { const M = MODES[todays.mode]; const link = st.settings.notion[M.key]; return (
-        <div className="mode" style={{background:M.color,color:M.ink}}>
-          <div className="label">Today you're in</div>
-          <h2>{todays.mode}</h2>
-          <div style={{fontSize:"1.1rem",marginBottom:16}}>{M.line}</div>
-          {link ? <a className="btn" style={{background:"#fff",color:"#1C1C1C"}} href={link} target="_blank" rel="noopener">Open my {todays.mode} list in Notion →</a>
-                : <div className="note" style={{color:"inherit"}}>Paste your Notion view link for {todays.mode} in Setup and a button appears here.</div>}
+        <div className="mode settle" key={todays.mode}>
+          <div className="strip"></div>
+          <div className="inner">
+            <div className="label">Today · {new Date().toLocaleDateString("en-US",{month:"long",day:"numeric"})}</div>
+            <div className="name">{todays.mode}</div>
+            <div className="time">{M.time}</div>
+            <div className="medium"><i>Medium:</i> {mediumLine(todays)}</div>
+            <div className="rule"></div>
+            <div className="advice">{M.line}</div>
+            {link ? <a className="btn outline" href={link} target="_blank" rel="noopener">Open my {todays.mode} list in Notion →</a>
+                  : <div className="note">Paste your Notion view link for {todays.mode} in Setup and a button appears here.</div>}
+          </div>
         </div>); })()}
 
-      {todays && evening && <div className="card">
-        <div className="label">Evening</div>
+      {todays && evening && <div className="card dark settle">
+        <div className="label">Evening · the dark room</div>
         <h2>How did today go?</h2>
         <div className="note" style={{marginBottom:8}}>{todays.rating ? "Saved. Tap another to change it." : "Rate it now while it's fresh, and tomorrow won't ask."}</div>
         <DayReview entry={todays} onSet={(k,v)=>setField(t, k, v)}/>
@@ -606,6 +693,8 @@ function App(){
     {tab==="setup" && <>
       <div className="card">
         <h2>About you</h2>
+        <div className="q">What should I call you?</div>
+        <input type="text" value={st.settings.name||""} placeholder="Suz" onChange={e=>set(n=>{n.settings.name=e.target.value;})}/>
         <div className="q">Date of birth</div>
         <input type="date" value={st.settings.dob||""} onChange={e=>set(n=>{n.settings.dob=e.target.value;})}/>
         <div className="note" style={{marginTop:6}}>
